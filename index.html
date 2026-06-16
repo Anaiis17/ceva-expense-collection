@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ceva Santé Animale – Coupa Expense Data Collection Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --ceva-blue: #0077B6;
+            --ceva-dark: #023E8A;
+            --ceva-teal: #00B4D8;
+            --ceva-light: #CAF0F8;
+            --ceva-accent: #E8168B;
+            --onepoint-pink: #E8168B;
+            --bg-light: #F8FBFD;
+            --text-dark: #1A1A2E;
+            --text-gray: #6B7280;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --white: #FFFFFF;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, var(--ceva-dark) 0%, var(--ceva-blue) 50%, var(--ceva-teal) 100%);
+            color: white;
+            padding: 2rem 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        .header-tag {
+            display: inline-block;
+            background: var(--onepoint-pink);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        .header p {
+            font-size: 1rem;
+            opacity: 0.85;
+        }
+
+        /* ===== NAV ===== */
+        .nav {
+            background: white;
+            border-bottom: 1px solid #E5E7EB;
+            padding: 0 3rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            gap: 2rem;
+        }
+        .nav a {
+            text-decoration: none;
+            color: var(--text-gray);
+            padding: 1rem 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .nav a:hover, .nav a.active {
+            color: var(--ceva-blue);
+            border-bottom-color: var(--ceva-blue);
+        }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 3rem;
+        }
+
+        /* ===== SECTION ===== */
+        .section { margin-bottom: 2.5rem; }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--ceva-dark);
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-title .icon {
+            width: 28px;
+            height: 28px;
+            background: var(--ceva-light);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+        }
+
+        /* ===== STATS CARDS ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border-left: 4px solid var(--ceva-blue);
+        }
+        .stat-card.completed { border-left-color: var(--success); }
+        .stat-card.in-progress { border-left-color: var(--warning); }
+        .stat-card.not-started { border-left-color: var(--danger); }
+        .stat-card.total { border-left-color: var(--ceva-blue); }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* ===== CHARTS ===== */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .chart-card h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+        }
+
+        /* ===== STEPS ===== */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+        .step-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .step-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .step-number {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--ceva-blue), var(--ceva-teal));
+            color: white;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+        .step-card h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.25rem;
+        }
+        .step-card p {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+        }
+
+        /* ===== TABLE ===== */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        .table-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #E5E7EB;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .table-header h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .table-search {
+            padding: 0.5rem 1rem;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            outline: none;
+            width: 250px;
+        }
+        .table-search:focus { border-color: var(--ceva-blue); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            text-align: left;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: #F9FAFB;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        td {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #F3F4F6;
+        }
+        tr:hover { background: #F8FBFD; }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-badge.completed { background: #D1FAE5; color: #065F46; }
+        .status-badge.in-progress { background: #FEF3C7; color: #92400E; }
+        .status-badge.not-started { background: #FEE2E2; color: #991B1B; }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .status-badge.completed .status-dot { background: #10B981; }
+        .status-badge.in-progress .status-dot { background: #F59E0B; }
+        .status-badge.not-started .status-dot { background: #EF4444; }
+        .sp-link {
+            color: var(--ceva-blue);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.8rem;
+        }
+        .sp-link:hover { text-decoration: underline; }
+
+        /* ===== RESOURCES ===== */
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        .resource-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            transition: transform 0.2s;
+        }
+        .resource-card:hover { transform: translateY(-2px); }
+        .resource-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--ceva-light);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .resource-card h4 { font-size: 0.85rem; margin-bottom: 0.15rem; }
+        .resource-card p { font-size: 0.75rem; color: var(--text-gray); }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            background: var(--ceva-dark);
+            color: white;
+            text-align: center;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        .footer-logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .footer-logos .separator {
+            width: 2px;
+            height: 20px;
+            background: rgba(255,255,255,0.3);
+        }
+        .footer p { font-size: 0.75rem; opacity: 0.6; }
+        .pink-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--onepoint-pink);
+            border-radius: 50%;
+            margin-left: 2px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .charts-grid { grid-template-columns: 1fr; }
+            .steps-grid { grid-template-columns: repeat(2, 1fr); }
+            .resources-grid { grid-template-columns: 1fr; }
+            .header { padding: 1.5rem; }
+            .main { padding: 1.5rem; }
+            .nav { padding: 0 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-content">
+            <div class="header-tag">Coupa Expense</div>
+            <h1>Data Collection Portal</h1>
+            <p>Ceva Santé Animale – Global Expense Deployment – 47 Entities</p>
+        </div>
+    </div>
+
+    <!-- NAV -->
+    <div class="nav">
+        <div class="nav-inner">
+            <a href="#dashboard" class="active">📊 Dashboard</a>
+            <a href="#steps">📋 Steps</a>
+            <a href="#entities">🏢 Entities</a>
+            <a href="#resources">📁 Resources</a>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- STATS -->
+        <div id="dashboard" class="section">
+            <div class="section-title"><span class="icon">📊</span> Project Overview</div>
+            <div class="stats-grid">
+                <div class="stat-card total">
+                    <div class="stat-number" id="stat-total">47</div>
+                    <div class="stat-label">Total Entities</div>
+                </div>
+                <div class="stat-card completed">
+                    <div class="stat-number" id="stat-completed">12</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-card in-progress">
+                    <div class="stat-number" id="stat-progress">8</div>
+                    <div class="stat-label">In Progress</div>
+                </div>
+                <div class="stat-card not-started">
+                    <div class="stat-number" id="stat-not-started">27</div>
+                    <div class="stat-label">Not Started</div>
+                </div>
+            </div>
+
+            <!-- CHARTS -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Overall Completion</h3>
+                    <canvas id="donutChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Progress by Region</h3>
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEPS -->
+        <div id="steps" class="section">
+            <div class="section-title"><span class="icon">📋</span> Data Collection Steps</div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h4>Entity Information</h4>
+                    <p>Country, currency, timezone, key contacts</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h4>Expense Policies</h4>
+                    <p>Local expense policy, approval rules, limits</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h4>Per Diem Rates</h4>
+                    <p>Pre-filled legal rates to validate or adjust</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <h4>Mileage Rates</h4>
+                    <p>Vehicle types, kilometric allowances</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">5</div>
+                    <h4>Tax / VAT Rates</h4>
+                    <p>Pre-filled country tax rates to confirm</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">6</div>
+                    <h4>Expense Categories</h4>
+                    <p>Local vs. core categories mapping</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">7</div>
+                    <h4>Approval Workflow</h4>
+                    <p>Approval chain, thresholds, delegation</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">8</div>
+                    <h4>Review & Submit</h4>
+                    <p>Final review and Excel export</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ENTITIES TABLE -->
+        <div id="entities" class="section">
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>🏢 Entity Status</h3>
+                    <input type="text" class="table-search" placeholder="Search entity or country..." onkeyup="filterTable(this.value)">
+                </div>
+                <table id="entityTable">
+                    <thead>
+                        <tr>
+                            <th>Entity</th>
+                            <th>Country</th>
+                            <th>Region</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                            <th>SharePoint</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entityBody">
+                        <!-- Filled by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- RESOURCES -->
+        <div id="resources" class="section">
+            <div class="section-title"><span class="icon">📁</span> Resources & Templates</div>
+            <div class="resources-grid">
+                <div class="resource-card">
+                    <div class="resource-icon">📊</div>
+                    <div>
+                        <h4>Data Collection Template</h4>
+                        <p>Pre-filled Excel template with legal rates</p>
+                    </div>
+                </div>
+                <div class="resource-card">
+                    <div class="resource-icon">📖</div>
+                    <div>
+                        <h4>User Guide</h4>
+                        <p>Step-by-step guide for key users</p>
+                    </div>
+                </div>
+                <div class="resource-card">
+                    <div class="resource-icon">🎥</div>
+                    <div>
+                        <h4>Training Videos</h4>
+                        <p>Multilingual video library</p>
+                    </div>
+                </div>
+                <div class="resource-card">
+                    <div class="resource-icon">❓</div>
+                    <div>
+                        <h4>FAQ</h4>
+                        <p>Frequently asked questions</p>
+                    </div>
+                </div>
+                <div class="resource-card">
+                    <div class="resource-icon">📧</div>
+                    <div>
+                        <h4>Contact Project Team</h4>
+                        <p>Reach out to the deployment team</p>
+                    </div>
+                </div>
+                <div class="resource-card">
+                    <div class="resource-icon">🔗</div>
+                    <div>
+                        <h4>Coupa Expense Docs</h4>
+                        <p>Official Coupa documentation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <div class="footer-logos">
+            <span>O<span class="pink-dot"></span> Onepoint</span>
+            <div class="separator"></div>
+            <span>Ceva Santé Animale</span>
+        </div>
+        <p>Coupa Expense – Global Deployment 2026–2027</p>
+    </div>
+
+    <!-- ===== JAVASCRIPT ===== -->
+    <script>
+    // ===== DATA =====
+    const data = {
+        summary: { total: 47, completed: 12, in_progress: 8, not_started: 27 },
+        regions: [
+            { name: "Europe", completed: 5, in_progress: 3, not_started: 7, total: 15 },
+            { name: "Asia Pacific", completed: 3, in_progress: 2, not_started: 8, total: 13 },
+            { name: "Latin America", completed: 2, in_progress: 2, not_started: 5, total: 9 },
+            { name: "Africa & Middle East", completed: 1, in_progress: 1, not_started: 4, total: 6 },
+            { name: "North America", completed: 1, in_progress: 0, not_started: 3, total: 4 }
+        ],
+        entities: [
+            { name: "Ceva France", country: "France", region: "Europe", status: "completed", progress: "8/8" },
+            { name: "Ceva Germany", country: "Germany", region: "Europe", status: "completed", progress: "8/8" },
+            { name: "Ceva Spain", country: "Spain", region: "Europe", status: "completed", progress: "8/8" },
+            { name: "Ceva Italy", country: "Italy", region: "Europe", status: "in-progress", progress: "5/8" },
+            { name: "Ceva UK", country: "United Kingdom", region: "Europe", status: "in-progress", progress: "6/8" },
+            { name: "Ceva Poland", country: "Poland", region: "Europe", status: "in-progress", progress: "3/8" },
+            { name: "Ceva Belgium", country: "Belgium", region: "Europe", status: "completed", progress: "8/8" },
+            { name: "Ceva Portugal", country: "Portugal", region: "Europe", status: "not-started", progress: "0/8" },
+            { name: "Ceva Hungary", country: "Hungary", region: "Europe", status: "completed", progress: "8/8" },
+            { name: "Ceva Japan", country: "Japan", region: "Asia Pacific", status: "completed", progress: "8/8" },
+            { name: "Ceva Vietnam", country: "Vietnam", region: "Asia Pacific", status: "in-progress", progress: "4/8" },
+            { name: "Ceva Indonesia", country: "Indonesia", region: "Asia Pacific", status: "in-progress", progress: "2/8" },
+            { name: "Ceva Korea", country: "South Korea", region: "Asia Pacific", status: "completed", progress: "8/8" },
+            { name: "Ceva Thailand", country: "Thailand", region: "Asia Pacific", status: "not-started", progress: "0/8" },
+            { name: "Ceva China", country: "China", region: "Asia Pacific", status: "completed", progress: "8/8" },
+            { name: "Ceva India", country: "India", region: "Asia Pacific", status: "not-started", progress: "0/8" },
+            { name: "Ceva Philippines", country: "Philippines", region: "Asia Pacific", status: "not-started", progress: "0/8" },
+            { name: "Ceva Brazil", country: "Brazil", region: "Latin America", status: "completed", progress: "8/8" },
+            { name: "Ceva Mexico", country: "Mexico", region: "Latin America", status: "completed", progress: "8/8" },
+            { name: "Ceva Chile", country: "Chile", region: "Latin America", status: "in-progress", progress: "6/8" },
+            { name: "Ceva Argentina", country: "Argentina", region: "Latin America", status: "in-progress", progress: "3/8" },
+            { name: "Ceva Colombia", country: "Colombia", region: "Latin America", status: "not-started", progress: "0/8" },
+            { name: "Ceva Egypt", country: "Egypt", region: "Africa & Middle East", status: "completed", progress: "8/8" },
+            { name: "Ceva South Africa", country: "South Africa", region: "Africa & Middle East", status: "in-progress", progress: "5/8" },
+            { name: "Ceva Morocco", country: "Morocco", region: "Africa & Middle East", status: "not-started", progress: "0/8" },
+            { name: "Ceva UAE", country: "UAE", region: "Africa & Middle East", status: "not-started", progress: "0/8" },
+            { name: "Ceva USA", country: "United States", region: "North America", status: "completed", progress: "8/8" },
+            { name: "Ceva Canada", country: "Canada", region: "North America", status: "not-started", progress: "0/8" }
+        ]
+    };
+
+    // ===== DONUT CHART =====
+    new Chart(document.getElementById('donutChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'In Progress', 'Not Started'],
+            datasets: [{
+                data: [data.summary.completed, data.summary.in_progress, data.summary.not_started],
+                backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+                borderWidth: 0,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            cutout: '65%',
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyle: 'circle' } }
+            }
+        }
+    });
+
+    // ===== BAR CHART =====
+    new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: {
+            labels: data.regions.map(r => r.name),
+            datasets: [
+                { label: 'Completed', data: data.regions.map(r => r.completed), backgroundColor: '#10B981', borderRadius: 4 },
+                { label: 'In Progress', data: data.regions.map(r => r.in_progress), backgroundColor: '#F59E0B', borderRadius: 4 },
+                { label: 'Not Started', data: data.regions.map(r => r.not_started), backgroundColor: '#EF4444', borderRadius: 4 }
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            scales: {
+                x: { stacked: true, grid: { display: false } },
+                y: { stacked: true, grid: { display: false } }
+            },
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyle: 'circle' } }
+            }
+        }
+    });
+
+    // ===== POPULATE TABLE =====
+    const tbody = document.getElementById('entityBody');
+    data.entities.forEach(e => {
+        const statusClass = e.status;
+        const statusLabel = e.status === 'completed' ? 'Completed' : e.status === 'in-progress' ? 'In Progress' : 'Not Started';
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><strong>${e.name}</strong></td>
+            <td>${e.country}</td>
+            <td>${e.region}</td>
+            <td><span class="status-badge ${statusClass}"><span class="status-dot"></span>${statusLabel}</span></td>
+            <td>${e.progress}</td>
+            <td><a href="#" class="sp-link">📂 Open form</a></td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // ===== SEARCH FILTER =====
+    function filterTable(query) {
+        const rows = document.querySelectorAll('#entityBody tr');
+        query = query.toLowerCase();
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(query) ? '' : 'none';
+        });
+    }
+    </script>
+</body>
+</html>

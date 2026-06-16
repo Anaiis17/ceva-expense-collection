@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ceva Santé Animale – Coupa Expense Data Collection Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --ceva-blue: #0077B6;
+            --ceva-dark: #023E8A;
+            --ceva-teal: #00B4D8;
+            --ceva-light: #CAF0F8;
+            --ceva-accent: #E8168B;
+            --onepoint-pink: #E8168B;
+            --bg-light: #F8FBFD;
+            --text-dark: #1A1A2E;
+            --text-gray: #6B7280;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --white: #FFFFFF;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, var(--ceva-dark) 0%, var(--ceva-blue) 50%, var(--ceva-teal) 100%);
+            color: white; padding: 1.75rem 3rem; position: relative; overflow: hidden;
+        }
+        .header::after {
+            content: ''; position: absolute; top: -50%; right: -10%;
+            width: 400px; height: 400px; background: rgba(255,255,255,0.05); border-radius: 50%;
+        }
+        .header-content { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+        .header-tag {
+            display: inline-block; background: var(--onepoint-pink); color: white;
+            padding: 0.2rem 0.7rem; border-radius: 4px; font-size: 0.7rem;
+            font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0.5rem;
+        }
+        .header h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.15rem; }
+        .header p { font-size: 0.9rem; opacity: 0.85; }
+
+        /* NAV TABS */
+        .nav {
+            background: white; border-bottom: 1px solid #E5E7EB;
+            padding: 0 3rem; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 0; }
+        .nav-tab {
+            padding: 0.9rem 1.5rem; font-size: 0.875rem; font-weight: 600;
+            color: var(--text-gray); cursor: pointer; border-bottom: 3px solid transparent;
+            transition: all 0.2s; user-select: none;
+        }
+        .nav-tab:hover { color: var(--ceva-blue); }
+        .nav-tab.active { color: var(--ceva-blue); border-bottom-color: var(--ceva-blue); }
+
+        /* MAIN */
+        .main { max-width: 1200px; margin: 0 auto; padding: 2rem 3rem; }
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* =================== DASHBOARD =================== */
+        .section { margin-bottom: 2rem; }
+        .section-title {
+            font-size: 1.15rem; font-weight: 700; color: var(--ceva-dark);
+            margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: white; border-radius: 12px; padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid var(--ceva-blue);
+        }
+        .stat-card.completed { border-left-color: var(--success); }
+        .stat-card.in-progress { border-left-color: var(--warning); }
+        .stat-card.not-started { border-left-color: var(--danger); }
+        .stat-number { font-size: 2rem; font-weight: 800; }
+        .stat-label { font-size: 0.75rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .charts-grid {
+            display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.5rem; margin-bottom: 2rem;
+        }
+        .chart-card {
+            background: white; border-radius: 12px; padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .chart-card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem; }
+        .table-card {
+            background: white; border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden;
+        }
+        .table-header-bar {
+            padding: 1rem 1.5rem; border-bottom: 1px solid #E5E7EB;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .table-header-bar h3 { font-size: 0.9rem; font-weight: 600; }
+        .table-search {
+            padding: 0.45rem 0.9rem; border: 1px solid #E5E7EB; border-radius: 8px;
+            font-size: 0.8rem; outline: none; width: 240px;
+        }
+        .table-search:focus { border-color: var(--ceva-blue); }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left; padding: 0.65rem 1.5rem; font-size: 0.7rem; font-weight: 600;
+            color: var(--text-gray); text-transform: uppercase; letter-spacing: 0.5px;
+            background: #F9FAFB; border-bottom: 1px solid #E5E7EB;
+        }
+        td { padding: 0.65rem 1.5rem; font-size: 0.825rem; border-bottom: 1px solid #F3F4F6; }
+        tr:hover { background: #F8FBFD; }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            padding: 0.2rem 0.65rem; border-radius: 20px; font-size: 0.7rem; font-weight: 600;
+        }
+        .status-badge.completed { background: #D1FAE5; color: #065F46; }
+        .status-badge.in-progress { background: #FEF3C7; color: #92400E; }
+        .status-badge.not-started { background: #FEE2E2; color: #991B1B; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .status-badge.completed .status-dot { background: #10B981; }
+        .status-badge.in-progress .status-dot { background: #F59E0B; }
+        .status-badge.not-started .status-dot { background: #EF4444; }
+
+        /* =================== WIZARD =================== */
+        .wizard-container {
+            background: white; border-radius: 16px; padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-height: 500px;
+        }
+        .progress-bar-container {
+            display: flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem; padding: 0 0.5rem;
+        }
+        .progress-step {
+            flex: 1; display: flex; flex-direction: column; align-items: center; position: relative;
+        }
+        .progress-circle {
+            width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; font-size: 0.75rem; font-weight: 700;
+            background: #E5E7EB; color: var(--text-gray); transition: all 0.3s; z-index: 2;
+        }
+        .progress-step.active .progress-circle {
+            background: linear-gradient(135deg, var(--ceva-blue), var(--ceva-teal));
+            color: white; box-shadow: 0 0 0 4px rgba(0,119,182,0.2);
+        }
+        .progress-step.done .progress-circle { background: var(--success); color: white; }
+        .progress-label {
+            font-size: 0.6rem; color: var(--text-gray); margin-top: 0.35rem;
+            text-align: center; font-weight: 500;
+        }
+        .progress-step.active .progress-label { color: var(--ceva-blue); font-weight: 700; }
+        .progress-step.done .progress-label { color: var(--success); }
+        .progress-line {
+            flex: 1; height: 3px; background: #E5E7EB; margin-top: -26px; z-index: 1;
+        }
+        .progress-line.done { background: var(--success); }
+
+        .wizard-step { display: none; animation: fadeIn 0.3s ease; }
+        .wizard-step.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .wizard-step h2 {
+            font-size: 1.25rem; color: var(--ceva-dark); margin-bottom: 0.35rem;
+        }
+        .wizard-step .subtitle {
+            font-size: 0.85rem; color: var(--text-gray); margin-bottom: 1.5rem;
+        }
+
+        .question-card {
+            background: var(--bg-light); border: 1px solid #E5E7EB; border-radius: 12px;
+            padding: 1.5rem; margin-bottom: 1.25rem;
+        }
+        .question-card label {
+            font-weight: 600; font-size: 0.9rem; color: var(--text-dark); display: block; margin-bottom: 0.6rem;
+        }
+        .question-card select, .question-card input[type="text"], .question-card textarea {
+            width: 100%; padding: 0.6rem 0.9rem; border: 1px solid #D1D5DB; border-radius: 8px;
+            font-size: 0.85rem; font-family: inherit; outline: none; transition: border-color 0.2s;
+        }
+        .question-card select:focus, .question-card input:focus, .question-card textarea:focus {
+            border-color: var(--ceva-blue); box-shadow: 0 0 0 3px rgba(0,119,182,0.1);
+        }
+        .question-card textarea { resize: vertical; min-height: 80px; }
+
+        .auto-filled {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-top: 1rem;
+        }
+        .auto-field {
+            background: white; padding: 0.7rem 1rem; border-radius: 8px; border: 1px solid #E5E7EB;
+        }
+        .auto-field .field-label { font-size: 0.65rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .auto-field .field-value { font-size: 0.9rem; font-weight: 600; color: var(--text-dark); }
+
+        .toggle-group { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
+        .toggle-btn {
+            padding: 0.6rem 1.5rem; border: 2px solid #D1D5DB; border-radius: 10px;
+            background: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+            color: var(--text-gray); transition: all 0.2s; user-select: none;
+        }
+        .toggle-btn:hover { border-color: var(--ceva-blue); color: var(--ceva-blue); }
+        .toggle-btn.selected { border-color: var(--ceva-blue); background: var(--ceva-light); color: var(--ceva-blue); }
+        .toggle-btn.selected-no { border-color: var(--danger); background: #FEE2E2; color: var(--danger); }
+        .conditional-content { display: none; animation: fadeIn 0.3s ease; }
+        .conditional-content.visible { display: block; }
+        .info-message {
+            background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px;
+            padding: 1rem 1.25rem; color: #166534; font-size: 0.85rem; display: none;
+        }
+        .info-message.visible { display: block; }
+
+        .editable-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+        .editable-table th {
+            background: var(--ceva-dark); color: white; padding: 0.6rem 1rem;
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .editable-table td {
+            padding: 0.5rem 0.75rem; border: 1px solid #E5E7EB; font-size: 0.825rem;
+        }
+        .editable-table input {
+            width: 100%; border: none; background: transparent; font-size: 0.825rem;
+            font-family: inherit; padding: 0.2rem; outline: none;
+        }
+        .editable-table input:focus { background: var(--ceva-light); border-radius: 4px; }
+        .editable-table tr:nth-child(even) { background: #F9FAFB; }
+        .source-note {
+            font-size: 0.7rem; color: var(--text-gray); margin-top: 0.5rem; font-style: italic;
+        }
+        .add-row-btn {
+            margin-top: 0.5rem; padding: 0.4rem 1rem; background: white; border: 1px dashed var(--ceva-blue);
+            color: var(--ceva-blue); border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 500;
+        }
+        .add-row-btn:hover { background: var(--ceva-light); }
+
+        .checklist { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
+        .check-item {
+            display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem;
+            background: white; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 0.825rem;
+            cursor: pointer; transition: all 0.2s; user-select: none;
+        }
+        .check-item:hover { border-color: var(--ceva-blue); }
+        .check-item.checked { border-color: var(--ceva-blue); background: var(--ceva-light); }
+        .check-item input { accent-color: var(--ceva-blue); }
+
+        /* REVIEW */
+        .review-section {
+            background: var(--bg-light); border: 1px solid #E5E7EB; border-radius: 12px;
+            padding: 1.25rem; margin-bottom: 1rem;
+        }
+        .review-section h4 {
+            font-size: 0.8rem; color: var(--ceva-blue); text-transform: uppercase;
+            letter-spacing: 0.5px; margin-bottom: 0.5rem;
+        }
+        .review-row { display: flex; justify-content: space-between; padding: 0.3rem 0; font-size: 0.825rem; }
+        .review-label { color: var(--text-gray); }
+        .review-value { font-weight: 600; }
+
+        /* NAV BUTTONS */
+        .wizard-nav {
+            display: flex; justify-content: space-between; margin-top: 2rem;
+            padding-top: 1.5rem; border-top: 1px solid #E5E7EB;
+        }
+        .btn {
+            padding: 0.65rem 1.75rem; border-radius: 10px; font-size: 0.85rem;
+            font-weight: 600; cursor: pointer; transition: all 0.2s; border: none;
+        }
+        .btn-secondary { background: #E5E7EB; color: var(--text-dark); }
+        .btn-secondary:hover { background: #D1D5DB; }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--ceva-blue), var(--ceva-teal));
+            color: white; box-shadow: 0 2px 8px rgba(0,119,182,0.3);
+        }
+        .btn-primary:hover { box-shadow: 0 4px 12px rgba(0,119,182,0.4); transform: translateY(-1px); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-export { background: var(--ceva-dark); color: white; }
+        .btn-export:hover { background: #012A62; }
+
+        .success-screen { text-align: center; padding: 3rem 1rem; display: none; }
+        .success-screen .big-check {
+            width: 80px; height: 80px; background: #D1FAE5; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; margin-bottom: 1rem;
+        }
+        .success-screen h2 { color: var(--success); margin-bottom: 0.5rem; }
+        .success-screen p { color: var(--text-gray); }
+
+        /* FOOTER */
+        .footer {
+            background: var(--ceva-dark); color: white; text-align: center;
+            padding: 1.25rem; margin-top: 2rem;
+        }
+        .footer-logos {
+            display: flex; justify-content: center; align-items: center; gap: 1.5rem;
+            margin-bottom: 0.4rem; font-weight: 700; font-size: 0.95rem;
+        }
+        .footer .separator { width: 2px; height: 18px; background: rgba(255,255,255,0.3); }
+        .footer p { font-size: 0.7rem; opacity: 0.6; }
+        .pink-dot {
+            display: inline-block; width: 8px; height: 8px;
+            background: var(--onepoint-pink); border-radius: 50%; margin-left: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .charts-grid { grid-template-columns: 1fr; }
+            .auto-filled { grid-template-columns: 1fr; }
+            .checklist { grid-template-columns: 1fr; }
+            .header, .main { padding: 1.5rem; }
+            .nav { padding: 0 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-content">
+        <div class="header-tag">Coupa Expense</div>
+        <h1>Data Collection Portal</h1>
+        <p>Ceva Santé Animale – Global Expense Deployment – 47 Entities</p>
+    </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+    <div class="nav-inner">
+        <div class="nav-tab active" onclick="showPage('dashboard')">📊 Dashboard</div>
+        <div class="nav-tab" onclick="showPage('wizard')">📋 Data Collection</div>
+        <div class="nav-tab" onclick="showPage('resources')">📁 Resources</div>
+    </div>
+</div>
+
+<div class="main">
+
+<!-- =================== PAGE: DASHBOARD =================== -->
+<div id="page-dashboard" class="page active">
+    <div class="section">
+        <div class="section-title">📊 Project Overview</div>
+        <div class="stats-grid">
+            <div class="stat-card" style="border-left-color:var(--ceva-blue)"><div class="stat-number">47</div><div class="stat-label">Total Entities</div></div>
+            <div class="stat-card completed"><div class="stat-number">12</div><div class="stat-label">Completed</div></div>
+            <div class="stat-card in-progress"><div class="stat-number">8</div><div class="stat-label">In Progress</div></div>
+            <div class="stat-card not-started"><div class="stat-number">27</div><div class="stat-label">Not Started</div></div>
+        </div>
+        <div class="charts-grid">
+            <div class="chart-card"><h3>Overall Completion</h3><canvas id="donutChart"></canvas></div>
+            <div class="chart-card"><h3>Progress by Region</h3><canvas id="barChart"></canvas></div>
+        </div>
+    </div>
+    <div class="section">
+        <div class="table-card">
+            <div class="table-header-bar">
+                <h3>🏢 Entity Status</h3>
+                <input type="text" class="table-search" placeholder="Search entity or country..." onkeyup="filterTable(this.value)">
+            </div>
+            <table><thead><tr><th>Entity</th><th>Country</th><th>Region</th><th>Status</th><th>Progress</th></tr></thead>
+            <tbody id="entityBody"></tbody></table>
+        </div>
+    </div>
+</div>
+
+<!-- =================== PAGE: WIZARD =================== -->
+<div id="page-wizard" class="page">
+    <div class="wizard-container">
+
+        <!-- PROGRESS BAR -->
+        <div class="progress-bar-container" id="progressBar"></div>
+
+        <!-- STEP 1: Entity -->
+        <div class="wizard-step active" id="step-1">
+            <h2>🏢 Step 1 – Entity Information</h2>
+            <p class="subtitle">Select your entity to get started. Related information will be auto-filled.</p>
+            <div class="question-card">
+                <label>For which entity are you working?</label>
+                <select id="entitySelect" onchange="onEntitySelect()">
+                    <option value="">-- Select your entity --</option>
+                </select>
+                <div class="auto-filled" id="autoFields" style="display:none">
+                    <div class="auto-field"><div class="field-label">Country</div><div class="field-value" id="af-country">–</div></div>
+                    <div class="auto-field"><div class="field-label">Currency</div><div class="field-value" id="af-currency">–</div></div>
+                    <div class="auto-field"><div class="field-label">Region</div><div class="field-value" id="af-region">–</div></div>
+                    <div class="auto-field"><div class="field-label">Timezone</div><div class="field-value" id="af-timezone">–</div></div>
+                </div>
+            </div>
+            <div class="question-card">
+                <label>Your name (key user)</label>
+                <input type="text" id="userName" placeholder="e.g. Maria Rodriguez">
+            </div>
+            <div class="question-card">
+                <label>Your email</label>
+                <input type="text" id="userEmail" placeholder="e.g. maria.rodriguez@ceva.com">
+            </div>
+        </div>
+
+        <!-- STEP 2: Expense Policy -->
+        <div class="wizard-step" id="step-2">
+            <h2>📄 Step 2 – Expense Policy</h2>
+            <p class="subtitle">Tell us about your local expense policy.</p>
+            <div class="question-card">
+                <label>Does your entity have a local expense policy?</label>
+                <div class="toggle-group">
+                    <div class="toggle-btn" onclick="toggle(this,'policy','yes')">✅ Yes</div>
+                    <div class="toggle-btn" onclick="toggle(this,'policy','no')">❌ No</div>
+                </div>
+                <div class="conditional-content" id="policy-yes">
+                    <label>Please describe the key rules of your local policy:</label>
+                    <textarea id="policyDesc" placeholder="e.g. Maximum meal expense is €25 per person, receipts required above €10..."></textarea>
+                    <p style="font-size:0.75rem; color:var(--text-gray); margin-top:0.5rem;">💡 You can also send your policy document to the project team via email.</p>
+                </div>
+                <div class="info-message" id="policy-no">
+                    ℹ️ No worries – the <strong>Ceva core model policy</strong> will apply to your entity. You can review it in the Resources section.
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Per Diem -->
+        <div class="wizard-step" id="step-3">
+            <h2>🍽️ Step 3 – Per Diem Rates</h2>
+            <p class="subtitle">Per diem rates have been pre-filled based on your country's legal rates. Please validate or adjust.</p>
+            <div class="question-card">
+                <label>Does your entity use per diem rates?</label>
+                <div class="toggle-group">
+                    <div class="toggle-btn" onclick="toggle(this,'perdiem','yes')">✅ Yes</div>
+                    <div class="toggle-btn" onclick="toggle(this,'perdiem','no')">❌ No</div>
+                </div>
+                <div class="conditional-content" id="perdiem-yes">
+                    <table class="editable-table" id="perdiemTable">
+                        <thead><tr><th>Category</th><th>Daily Rate</th><th>Currency</th></tr></thead>
+                        <tbody id="perdiemBody"></tbody>
+                    </table>
+                    <p class="source-note" id="perdiemSource">Source: Official government rates</p>
+                    <button class="add-row-btn" onclick="addPerDiemRow()">+ Add a row</button>
+                </div>
+                <div class="info-message" id="perdiem-no">
+                    ℹ️ Per diem will <strong>not be configured</strong> for your entity. Employees will submit actual expenses with receipts.
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: Mileage -->
+        <div class="wizard-step" id="step-4">
+            <h2>🚗 Step 4 – Mileage / Kilometric Allowances</h2>
+            <p class="subtitle">Pre-filled with your country's standard mileage rates.</p>
+            <div class="question-card">
+                <label>Does your entity use mileage / kilometric allowances?</label>
+                <div class="toggle-group">
+                    <div class="toggle-btn" onclick="toggle(this,'mileage','yes')">✅ Yes</div>
+                    <div class="toggle-btn" onclick="toggle(this,'mileage','no')">❌ No</div>
+                </div>
+                <div class="conditional-content" id="mileage-yes">
+                    <table class="editable-table" id="mileageTable">
+                        <thead><tr><th>Vehicle Type</th><th>Rate per km</th><th>Currency</th></tr></thead>
+                        <tbody id="mileageBody"></tbody>
+                    </table>
+                    <p class="source-note" id="mileageSource">Source: Official fiscal barème</p>
+                    <button class="add-row-btn" onclick="addMileageRow()">+ Add a row</button>
+                </div>
+                <div class="info-message" id="mileage-no">
+                    ℹ️ Mileage allowances will <strong>not be configured</strong> for your entity.
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 5: Tax/VAT -->
+        <div class="wizard-step" id="step-5">
+            <h2>💰 Step 5 – Tax / VAT Rates</h2>
+            <p class="subtitle">Please confirm the applicable VAT/Tax rates for your country.</p>
+            <div class="question-card">
+                <label>Applicable VAT / Tax rates</label>
+                <table class="editable-table" id="taxTable">
+                    <thead><tr><th>Tax Type</th><th>Rate (%)</th><th>Description</th></tr></thead>
+                    <tbody id="taxBody"></tbody>
+                </table>
+                <p class="source-note" id="taxSource">Source: European Commission / OECD</p>
+            </div>
+        </div>
+
+        <!-- STEP 6: Expense Categories -->
+        <div class="wizard-step" id="step-6">
+            <h2>🏷️ Step 6 – Expense Categories</h2>
+            <p class="subtitle">Select the expense categories used by your entity. Core categories are pre-selected.</p>
+            <div class="question-card">
+                <label>Active expense categories</label>
+                <div class="checklist" id="categoryChecklist"></div>
+            </div>
+            <div class="question-card">
+                <label>Any additional local categories?</label>
+                <input type="text" id="customCategories" placeholder="e.g. Medical expenses, Visa fees, Local transport pass...">
+            </div>
+        </div>
+
+        <!-- STEP 7: Approval Workflow -->
+        <div class="wizard-step" id="step-7">
+            <h2>✅ Step 7 – Approval Workflow</h2>
+            <p class="subtitle">Describe how expense reports are approved in your entity.</p>
+            <div class="question-card">
+                <label>Approval chain</label>
+                <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+                    <span style="background:var(--ceva-light); padding:0.4rem 0.8rem; border-radius:8px; font-size:0.825rem; font-weight:600;">1. Employee</span>
+                    <span style="color:var(--ceva-blue);">→</span>
+                    <span style="background:var(--ceva-light); padding:0.4rem 0.8rem; border-radius:8px; font-size:0.825rem; font-weight:600;">2. Manager</span>
+                    <span style="color:var(--ceva-blue);">→</span>
+                    <span style="background:var(--ceva-light); padding:0.4rem 0.8rem; border-radius:8px; font-size:0.825rem; font-weight:600;">3. Finance</span>
+                </div>
+                <label>Do you need additional approval steps?</label>
+                <textarea id="approvalNotes" placeholder="e.g. VP approval above €5,000, second-level manager for international travel..."></textarea>
+            </div>
+            <div class="question-card">
+                <label>Do you have specific approval thresholds?</label>
+                <div class="toggle-group">
+                    <div class="toggle-btn" onclick="toggle(this,'threshold','yes')">✅ Yes</div>
+                    <div class="toggle-btn" onclick="toggle(this,'threshold','no')">❌ No</div>
+                </div>
+                <div class="conditional-content" id="threshold-yes">
+                    <table class="editable-table">
+                        <thead><tr><th>Amount Range</th><th>Approver</th></tr></thead>
+                        <tbody id="thresholdBody">
+                            <tr><td><input value="< 500"></td><td><input value="Direct Manager"></td></tr>
+                            <tr><td><input value="500 – 2,000"></td><td><input value="Department Head"></td></tr>
+                            <tr><td><input value="> 2,000"></td><td><input value="Finance Director"></td></tr>
+                        </tbody>
+                    </table>
+                    <button class="add-row-btn" onclick="addThresholdRow()">+ Add a threshold</button>
+                </div>
+                <div class="info-message" id="threshold-no">
+                    ℹ️ Standard approval chain (Manager → Finance) will apply at all amounts.
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 8: Review & Export -->
+        <div class="wizard-step" id="step-8">
+            <h2>📋 Step 8 – Review & Submit</h2>
+            <p class="subtitle">Please review your answers before submitting.</p>
+            <div id="reviewContent"></div>
+            <div style="display:flex; gap:1rem; margin-top:1.5rem; flex-wrap:wrap;">
+                <button class="btn btn-export" onclick="exportToExcel()">📥 Download as Excel</button>
+                <button class="btn btn-success" onclick="submitWizard()">✅ Submit Data Collection</button>
+            </div>
+        </div>
+
+        <!-- SUCCESS -->
+        <div class="success-screen" id="successScreen">
+            <div class="big-check">✅</div>
+            <h2>Data Collection Complete!</h2>
+            <p>Thank you! Your data has been submitted successfully.<br>The project team will review your answers and contact you if needed.</p>
+        </div>
+
+        <!-- NAVIGATION -->
+        <div class="wizard-nav" id="wizardNav">
+            <button class="btn btn-secondary" id="prevBtn" onclick="prevStep()">← Previous</button>
+            <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">Next →</button>
+        </div>
+    </div>
+</div>
+
+<!-- =================== PAGE: RESOURCES =================== -->
+<div id="page-resources" class="page">
+    <div class="section">
+        <div class="section-title">📁 Resources & Templates</div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem;">
+            <div class="question-card" style="text-align:center; cursor:pointer;">
+                <div style="font-size:2rem; margin-bottom:0.5rem;">📊</div>
+                <h4>Data Collection Template</h4>
+                <p style="font-size:0.75rem; color:var(--text-gray);">Pre-filled Excel with legal rates</p>
+            </div>
+            <div class="question-card" style="text-align:center; cursor:pointer;">
+                <div style="font-size:2rem; margin-bottom:0.5rem;">📖</div>
+                <h4>User Guide</h4>
+                <p style="font-size:0.75rem; color:var(--text-gray);">Step-by-step instructions</p>
+            </div>
+            <div class="question-card" style="text-align:center; cursor:pointer;">
+                <div style="font-size:2rem; margin-bottom:0.5rem;">🎥</div>
+                <h4>Training Videos</h4>
+                <p style="font-size:0.75rem; color:var(--text-gray);">Multilingual video library</p>
+            </div>
+            <div class="question-card" style="text-align:center; cursor:pointer;">
+                <div style="font-size:2rem; margin-bottom:0.5rem;">📄</div>
+                <h4>Core Expense Policy</h4>
+                <p style="font-size:0.75rem; color:var(--text-gray);">Ceva global expense policy</p>
+            </div>
+            <div class="question-card" style="text-align:center; cursor:pointer;">
+                <div style="font-size:2rem; margin-bottom:0.5rem;">❓</div>
+                <h4>FAQ</h4>
+                <p style="font-size:0.75rem; color:var(--text-gray);">Frequently asked questions</p>
+            </div>
+            <div class="question-card" style="text-align:center; cursor:pointer;">
+                <div style="font-size:2rem; margin-bottom:0.5rem;">📧</div>
+                <h4>Contact Project Team</h4>
+                <p style="font-size:0.75rem; color:var(--text-gray);">Reach out for help</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- FOOTER -->
+<div class="footer">
+    <div class="footer-logos">
+        <span>O<span class="pink-dot"></span> Onepoint</span>
+        <div class="separator"></div>
+        <span>Ceva Santé Animale</span>
+    </div>
+    <p>Coupa Expense – Global Deployment 2026–2027</p>
+</div>
+
+<script>
+// ===================== DATA =====================
+const entities = [
+    { name:"Ceva France", country:"France", currency:"EUR", region:"Europe", tz:"CET (UTC+1)" },
+    { name:"Ceva Germany", country:"Germany", currency:"EUR", region:"Europe", tz:"CET (UTC+1)" },
+    { name:"Ceva Spain", country:"Spain", currency:"EUR", region:"Europe", tz:"CET (UTC+1)" },
+    { name:"Ceva Italy", country:"Italy", currency:"EUR", region:"Europe", tz:"CET (UTC+1)" },
+    { name:"Ceva UK", country:"United Kingdom", currency:"GBP", region:"Europe", tz:"GMT (UTC+0)" },
+    { name:"Ceva Poland", country:"Poland", currency:"PLN", region:"Europe", tz:"CET (UTC+1)" },
+    { name:"Ceva Belgium", country:"Belgium", currency:"EUR", region:"Europe", tz:"CET (UTC+1)" },
+    { name:"Ceva Portugal", country:"Portugal", currency:"EUR", region:"Europe", tz:"WET (UTC+0)" },
+    { name:"Ceva Hungary", country:"Hungary", currency:"HUF", region:"Europe", tz:"CET (UTC+1)" },
+    { name:"Ceva Netherlands", country:"Netherlands", currency:"EUR", region:"Europe", tz:"CET (UTC+1)" },
+    { name:"Ceva Romania", country:"Romania", currency:"RON", region:"Europe", tz:"EET (UTC+2)" },
+    { name:"Ceva Japan", country:"Japan", currency:"JPY", region:"Asia Pacific", tz:"JST (UTC+9)" },
+    { name:"Ceva Vietnam", country:"Vietnam", currency:"VND", region:"Asia Pacific", tz:"ICT (UTC+7)" },
+    { name:"Ceva Indonesia", country:"Indonesia", currency:"IDR", region:"Asia Pacific", tz:"WIB (UTC+7)" },
+    { name:"Ceva Korea", country:"South Korea", currency:"KRW", region:"Asia Pacific", tz:"KST (UTC+9)" },
+    { name:"Ceva Thailand", country:"Thailand", currency:"THB", region:"Asia Pacific", tz:"ICT (UTC+7)" },
+    { name:"Ceva China", country:"China", currency:"CNY", region:"Asia Pacific", tz:"CST (UTC+8)" },
+    { name:"Ceva India", country:"India", currency:"INR", region:"Asia Pacific", tz:"IST (UTC+5:30)" },
+    { name:"Ceva Philippines", country:"Philippines", currency:"PHP", region:"Asia Pacific", tz:"PHT (UTC+8)" },
+    { name:"Ceva Australia", country:"Australia", currency:"AUD", region:"Asia Pacific", tz:"AEST (UTC+10)" },
+    { name:"Ceva Brazil", country:"Brazil", currency:"BRL", region:"Latin America", tz:"BRT (UTC-3)" },
+    { name:"Ceva Mexico", country:"Mexico", currency:"MXN", region:"Latin America", tz:"CST (UTC-6)" },
+    { name:"Ceva Chile", country:"Chile", currency:"CLP", region:"Latin America", tz:"CLT (UTC-3)" },
+    { name:"Ceva Argentina", country:"Argentina", currency:"ARS", region:"Latin America", tz:"ART (UTC-3)" },
+    { name:"Ceva Colombia", country:"Colombia", currency:"COP", region:"Latin America", tz:"COT (UTC-5)" },
+    { name:"Ceva Egypt", country:"Egypt", currency:"EGP", region:"Africa & ME", tz:"EET (UTC+2)" },
+    { name:"Ceva South Africa", country:"South Africa", currency:"ZAR", region:"Africa & ME", tz:"SAST (UTC+2)" },
+    { name:"Ceva Morocco", country:"Morocco", currency:"MAD", region:"Africa & ME", tz:"WET (UTC+0)" },
+    { name:"Ceva UAE", country:"UAE", currency:"AED", region:"Africa & ME", tz:"GST (UTC+4)" },
+    { name:"Ceva Turkey", country:"Turkey", currency:"TRY", region:"Africa & ME", tz:"TRT (UTC+3)" },
+    { name:"Ceva USA", country:"United States", currency:"USD", region:"North America", tz:"EST (UTC-5)" },
+    { name:"Ceva Canada", country:"Canada", currency:"CAD", region:"North America", tz:"EST (UTC-5)" },
+];
+
+const perDiemData = {
+    "France": { rates:[["Breakfast","20.70","EUR"],["Lunch","20.70","EUR"],["Dinner","20.70","EUR"],["Accommodation","120.00","EUR"]], source:"Source: Urssaf – Barème des indemnités de grand déplacement 2026" },
+    "Germany": { rates:[["Breakfast","14.00","EUR"],["Full Day","28.00","EUR"],["Accommodation","—","EUR"]], source:"Source: Bundesfinanzministerium – Verpflegungspauschalen 2026" },
+    "United Kingdom": { rates:[["Breakfast","7.00","GBP"],["Lunch","7.00","GBP"],["Dinner","15.00","GBP"],["Accommodation","100.00","GBP"]], source:"Source: HMRC – Benchmark scale rates" },
+    "Spain": { rates:[["Full Day (domestic)","53.34","EUR"],["Full Day (abroad)","91.35","EUR"],["Accommodation","—","EUR"]], source:"Source: Agencia Tributaria – Dietas exentas" },
+    "Italy": { rates:[["Full Day (domestic)","46.48","EUR"],["Full Day (abroad)","77.47","EUR"]], source:"Source: Agenzia delle Entrate" },
+    "United States": { rates:[["M&IE Tier 1","59.00","USD"],["M&IE Tier 2","64.00","USD"],["M&IE Tier 3","74.00","USD"],["Lodging (avg)","107.00","USD"]], source:"Source: GSA – Per Diem Rates FY2026" },
+    "Japan": { rates:[["Daily allowance","2,500","JPY"],["Accommodation","14,800","JPY"]], source:"Source: National Tax Agency Japan" },
+    "Brazil": { rates:[["Full Day","110.00","BRL"],["Accommodation","290.00","BRL"]], source:"Source: Federal Government decree" },
+    "_default": { rates:[["Breakfast","—","—"],["Lunch","—","—"],["Dinner","—","—"],["Accommodation","—","—"]], source:"Source: Please fill in with your local legal rates" }
+};
+
+const mileageData = {
+    "France": { rates:[["Car (5 CV)","0.603","EUR"],["Car (7 CV+)","0.697","EUR"],["Motorcycle","0.395","EUR"]], source:"Source: Urssaf – Barème kilométrique 2026" },
+    "United Kingdom": { rates:[["Car (first 10k miles)","0.45","GBP"],["Car (above 10k)","0.25","GBP"],["Motorcycle","0.24","GBP"],["Bicycle","0.20","GBP"]], source:"Source: HMRC – Advisory mileage rates" },
+    "Germany": { rates:[["Car","0.30","EUR"],["Motorcycle","0.20","EUR"]], source:"Source: Bundesfinanzministerium – Entfernungspauschale" },
+    "United States": { rates:[["Standard IRS rate","0.67","USD"]], source:"Source: IRS – Standard Mileage Rates 2026" },
+    "_default": { rates:[["Car","—","—"],["Motorcycle","—","—"]], source:"Source: Please fill in with your local mileage rates" }
+};
+
+const taxData = {
+    "France": { rates:[["Standard","20","TVA standard"],["Reduced","10","Restauration, transport"],["Reduced","5.5","Alimentaire"],["Super-reduced","2.1","Presse, médicaments"]], source:"Source: Direction générale des finances publiques" },
+    "Germany": { rates:[["Standard","19","Regelsteuersatz"],["Reduced","7","Ermäßigter Steuersatz"]], source:"Source: Bundesfinanzministerium" },
+    "United Kingdom": { rates:[["Standard","20","Standard rate"],["Reduced","5","Reduced rate"],["Zero","0","Food, books, children's clothing"]], source:"Source: HMRC – VAT rates" },
+    "Spain": { rates:[["General","21","IVA general"],["Reduced","10","IVA reducido"],["Super-reduced","4","IVA superreducido"]], source:"Source: Agencia Tributaria" },
+    "Italy": { rates:[["Standard","22","IVA ordinaria"],["Reduced","10","IVA ridotta"],["Reduced","5","IVA ridotta"],["Minimum","4","IVA minima"]], source:"Source: Agenzia delle Entrate" },
+    "United States": { rates:[["Federal sales tax","0","No federal VAT – state-level sales tax applies"],["State sales tax (avg)","6.5","Varies by state"]], source:"Source: Tax Foundation" },
+    "Japan": { rates:[["Standard","10","Consumption tax"],["Reduced","8","Food & beverages"]], source:"Source: National Tax Agency Japan" },
+    "Brazil": { rates:[["ICMS (avg)","18","State-level"],["ISS","5","Municipal services"],["PIS/COFINS","9.25","Federal"]], source:"Source: Receita Federal do Brasil" },
+    "_default": { rates:[["Standard","—",""],["Reduced","—",""],["Zero","0",""]], source:"Source: Please confirm your local tax rates" }
+};
+
+const categories = [
+    { name:"Meals & Entertainment", core:true },
+    { name:"Hotels & Accommodation", core:true },
+    { name:"Air Travel", core:true },
+    { name:"Train / Rail", core:true },
+    { name:"Taxi / Ride-hailing", core:true },
+    { name:"Car Rental", core:true },
+    { name:"Fuel / Gas", core:true },
+    { name:"Parking & Tolls", core:true },
+    { name:"Office Supplies", core:true },
+    { name:"Phone & Internet", core:true },
+    { name:"Conference & Events", core:false },
+    { name:"Professional Services", core:false },
+    { name:"Subscriptions & Software", core:false },
+    { name:"Postage & Shipping", core:false },
+    { name:"Visa & Immigration", core:false },
+    { name:"Other", core:true }
+];
+
+const dashboardEntities = [
+    { name:"Ceva France", country:"France", region:"Europe", status:"completed", progress:"8/8" },
+    { name:"Ceva Germany", country:"Germany", region:"Europe", status:"completed", progress:"8/8" },
+    { name:"Ceva Spain", country:"Spain", region:"Europe", status:"completed", progress:"8/8" },
+    { name:"Ceva Italy", country:"Italy", region:"Europe", status:"in-progress", progress:"5/8" },
+    { name:"Ceva UK", country:"United Kingdom", region:"Europe", status:"in-progress", progress:"6/8" },
+    { name:"Ceva Poland", country:"Poland", region:"Europe", status:"in-progress", progress:"3/8" },
+    { name:"Ceva Belgium", country:"Belgium", region:"Europe", status:"completed", progress:"8/8" },
+    { name:"Ceva Hungary", country:"Hungary", region:"Europe", status:"completed", progress:"8/8" },
+    { name:"Ceva Japan", country:"Japan", region:"Asia Pacific", status:"completed", progress:"8/8" },
+    { name:"Ceva Vietnam", country:"Vietnam", region:"Asia Pacific", status:"in-progress", progress:"4/8" },
+    { name:"Ceva Indonesia", country:"Indonesia", region:"Asia Pacific", status:"in-progress", progress:"2/8" },
+    { name:"Ceva Korea", country:"South Korea", region:"Asia Pacific", status:"completed", progress:"8/8" },
+    { name:"Ceva China", country:"China", region:"Asia Pacific", status:"completed", progress:"8/8" },
+    { name:"Ceva Brazil", country:"Brazil", region:"Latin America", status:"completed", progress:"8/8" },
+    { name:"Ceva Mexico", country:"Mexico", region:"Latin America", status:"completed", progress:"8/8" },
+    { name:"Ceva Chile", country:"Chile", region:"Latin America", status:"in-progress", progress:"6/8" },
+    { name:"Ceva Argentina", country:"Argentina", region:"Latin America", status:"in-progress", progress:"3/8" },
+    { name:"Ceva Egypt", country:"Egypt", region:"Africa & ME", status:"completed", progress:"8/8" },
+    { name:"Ceva South Africa", country:"South Africa", region:"Africa & ME", status:"in-progress", progress:"5/8" },
+    { name:"Ceva USA", country:"United States", region:"North America", status:"completed", progress:"8/8" },
+];
+
+// ===================== WIZARD STATE =====================
+let currentStep = 1;
+const totalSteps = 8;
+let answers = {};
+
+// ===================== INIT =====================
+document.addEventListener('DOMContentLoaded', function() {
+    initEntityDropdown();
+    initCategoryChecklist();
+    buildProgressBar();
+    updateProgressBar();
+    initDashboard();
+    updateWizardNav();
+});
+
+// ===================== PAGE NAV =====================
+function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+// ===================== DASHBOARD =====================
+function initDashboard() {
+    // Donut
+    new Chart(document.getElementById('donutChart'), {
+        type:'doughnut',
+        data:{ labels:['Completed','In Progress','Not Started'],
+            datasets:[{ data:[12,8,27], backgroundColor:['#10B981','#F59E0B','#EF4444'], borderWidth:0, hoverOffset:8 }]
+        },
+        options:{ cutout:'65%', responsive:true, plugins:{ legend:{ position:'bottom', labels:{ padding:16, usePointStyle:true, pointStyle:'circle' }}}}
+    });
+    // Bar
+    const regions = [
+        { name:"Europe", c:5, p:3, n:7 },
+        { name:"Asia Pacific", c:3, p:2, n:8 },
+        { name:"Latin America", c:2, p:2, n:5 },
+        { name:"Africa & ME", c:1, p:1, n:4 },
+        { name:"North America", c:1, p:0, n:3 }
+    ];
+    new Chart(document.getElementById('barChart'), {
+        type:'bar',
+        data:{
+            labels: regions.map(r=>r.name),
+            datasets:[
+                { label:'Completed', data:regions.map(r=>r.c), backgroundColor:'#10B981', borderRadius:4 },
+                { label:'In Progress', data:regions.map(r=>r.p), backgroundColor:'#F59E0B', borderRadius:4 },
+                { label:'Not Started', data:regions.map(r=>r.n), backgroundColor:'#EF4444', borderRadius:4 }
+            ]
+        },
+        options:{
+            indexAxis:'y', responsive:true,
+            scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, grid:{display:false}} },
+            plugins:{ legend:{ position:'bottom', labels:{ padding:16, usePointStyle:true, pointStyle:'circle' }}}
+        }
+    });
+    // Table
+    const tbody = document.getElementById('entityBody');
+    dashboardEntities.forEach(e => {
+        const label = e.status==='completed'?'Completed':e.status==='in-progress'?'In Progress':'Not Started';
+        tbody.innerHTML += `<tr><td><strong>${e.name}</strong></td><td>${e.country}</td><td>${e.region}</td>
+            <td><span class="status-badge ${e.status}"><span class="status-dot"></span>${label}</span></td><td>${e.progress}</td></tr>`;
+    });
+}
+function filterTable(q) {
+    document.querySelectorAll('#entityBody tr').forEach(r => {
+        r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+    });
+}
+
+// ===================== WIZARD: PROGRESS BAR =====================
+function buildProgressBar() {
+    const labels = ['Entity','Policy','Per Diem','Mileage','Tax/VAT','Categories','Approval','Review'];
+    const bar = document.getElementById('progressBar');
+    bar.innerHTML = '';
+    for (let i = 0; i < totalSteps; i++) {
+        if (i > 0) bar.innerHTML += '<div class="progress-line" id="pline-'+(i)+'"></div>';
+        bar.innerHTML += '<div class="progress-step" id="pstep-'+(i+1)+'"><div class="progress-circle">'+(i+1)+'</div><div class="progress-label">'+labels[i]+'</div></div>';
+    }
+}
+function updateProgressBar() {
+    for (let i = 1; i <= totalSteps; i++) {
+        const el = document.getElementById('pstep-'+i);
+        el.className = 'progress-step';
+        if (i < currentStep) el.classList.add('done');
+        if (i === currentStep) el.classList.add('active');
+    }
+    for (let i = 1; i < totalSteps; i++) {
+        const line = document.getElementById('pline-'+i);
+        if (line) { line.className = 'progress-line'; if (i < currentStep) line.classList.add('done'); }
+    }
+}
+
+// ===================== WIZARD: NAVIGATION =====================
+function updateWizardNav() {
+    document.getElementById('prevBtn').style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+    document.getElementById('nextBtn').textContent = currentStep === totalSteps ? '✅ Review complete' : 'Next →';
+    if (currentStep === totalSteps) document.getElementById('nextBtn').style.display = 'none';
+    else document.getElementById('nextBtn').style.display = '';
+}
+function nextStep() {
+    if (currentStep >= totalSteps) return;
+    saveCurrentStep();
+    document.getElementById('step-'+currentStep).classList.remove('active');
+    currentStep++;
+    document.getElementById('step-'+currentStep).classList.add('active');
+    if (currentStep === 8) buildReview();
+    updateProgressBar();
+    updateWizardNav();
+    window.scrollTo({top:200, behavior:'smooth'});
+}
+function prevStep() {
+    if (currentStep <= 1) return;
+    document.getElementById('step-'+currentStep).classList.remove('active');
+    currentStep--;
+    document.getElementById('step-'+currentStep).classList.add('active');
+    updateProgressBar();
+    updateWizardNav();
+    window.scrollTo({top:200, behavior:'smooth'});
+}
+
+// ===================== WIZARD: ENTITY SELECT =====================
+function initEntityDropdown() {
+    const sel = document.getElementById('entitySelect');
+    entities.forEach(e => { sel.innerHTML += '<option value="'+e.name+'">'+e.name+' ('+e.country+')</option>'; });
+}
+function onEntitySelect() {
+    const val = document.getElementById('entitySelect').value;
+    const ent = entities.find(e => e.name === val);
+    if (!ent) { document.getElementById('autoFields').style.display='none'; return; }
+    document.getElementById('autoFields').style.display='grid';
+    document.getElementById('af-country').textContent = ent.country;
+    document.getElementById('af-currency').textContent = ent.currency;
+    document.getElementById('af-region').textContent = ent.region;
+    document.getElementById('af-timezone').textContent = ent.tz;
+    answers.entity = ent;
+    prefillCountryData(ent.country, ent.currency);
+}
+function prefillCountryData(country, currency) {
+    // Per Diem
+    const pd = perDiemData[country] || perDiemData['_default'];
+    const pdb = document.getElementById('perdiemBody');
+    pdb.innerHTML = '';
+    pd.rates.forEach(r => { pdb.innerHTML += '<tr><td><input value="'+r[0]+'"></td><td><input value="'+r[1]+'"></td><td><input value="'+r[2]+'"></td></tr>'; });
+    document.getElementById('perdiemSource').textContent = pd.source;
+    // Mileage
+    const ml = mileageData[country] || mileageData['_default'];
+    const mlb = document.getElementById('mileageBody');
+    mlb.innerHTML = '';
+    ml.rates.forEach(r => { mlb.innerHTML += '<tr><td><input value="'+r[0]+'"></td><td><input value="'+r[1]+'"></td><td><input value="'+r[2]+'"></td></tr>'; });
+    document.getElementById('mileageSource').textContent = ml.source;
+    // Tax
+    const tx = taxData[country] || taxData['_default'];
+    const txb = document.getElementById('taxBody');
+    txb.innerHTML = '';
+    tx.rates.forEach(r => { txb.innerHTML += '<tr><td><input value="'+r[0]+'"></td><td><input value="'+r[1]+'"></td><td><input value="'+r[2]+'"></td></tr>'; });
+    document.getElementById('taxSource').textContent = tx.source;
+}
+
+// ===================== WIZARD: TOGGLES =====================
+function toggle(btn, group, value) {
+    btn.parentElement.querySelectorAll('.toggle-btn').forEach(b => { b.classList.remove('selected','selected-no'); });
+    btn.classList.add(value==='yes'?'selected':'selected-no');
+    const yesEl = document.getElementById(group+'-yes');
+    const noEl = document.getElementById(group+'-no');
+    if (yesEl) { yesEl.classList.toggle('visible', value==='yes'); }
+    if (noEl) { noEl.classList.toggle('visible', value==='no'); }
+    answers[group] = value;
+}
+
+// ===================== WIZARD: ADD ROWS =====================
+function addPerDiemRow() {
+    const c = answers.entity ? answers.entity.currency : '—';
+    document.getElementById('perdiemBody').innerHTML += '<tr><td><input value="" placeholder="Category"></td><td><input value="" placeholder="Rate"></td><td><input value="'+c+'"></td></tr>';
+}
+function addMileageRow() {
+    const c = answers.entity ? answers.entity.currency : '—';
+    document.getElementById('mileageBody').innerHTML += '<tr><td><input value="" placeholder="Vehicle type"></td><td><input value="" placeholder="Rate"></td><td><input value="'+c+'"></td></tr>';
+}
+function addThresholdRow() {
+    document.getElementById('thresholdBody').innerHTML += '<tr><td><input value="" placeholder="Amount range"></td><td><input value="" placeholder="Approver"></td></tr>';
+}
+
+// ===================== WIZARD: CATEGORIES =====================
+function initCategoryChecklist() {
+    const cl = document.getElementById('categoryChecklist');
+    categories.forEach((c,i) => {
+        cl.innerHTML += '<label class="check-item '+(c.core?'checked':'')+'"><input type="checkbox" '+(c.core?'checked':'')+' onchange="this.parentElement.classList.toggle(\'checked\')"> '+c.name+'</label>';
+    });
+}
+
+// ===================== WIZARD: SAVE & REVIEW =====================
+function saveCurrentStep() {
+    answers.userName = document.getElementById('userName').value;
+    answers.userEmail = document.getElementById('userEmail').value;
+    answers.policyDesc = document.getElementById('policyDesc').value;
+    answers.approvalNotes = document.getElementById('approvalNotes').value;
+    answers.customCategories = document.getElementById('customCategories').value;
+    // Collect table data
+    answers.perdiemRates = collectTable('perdiemBody');
+    answers.mileageRates = collectTable('mileageBody');
+    answers.taxRates = collectTable('taxBody');
+    answers.thresholds = collectTable('thresholdBody');
+    answers.categories = [];
+    document.querySelectorAll('#categoryChecklist input:checked').forEach(cb => {
+        answers.categories.push(cb.parentElement.textContent.trim());
+    });
+}
+function collectTable(tbodyId) {
+    const rows = [];
+    document.querySelectorAll('#'+tbodyId+' tr').forEach(tr => {
+        const cells = [];
+        tr.querySelectorAll('input').forEach(inp => cells.push(inp.value));
+        if (cells.length) rows.push(cells);
+    });
+    return rows;
+}
+function buildReview() {
+    saveCurrentStep();
+    const rc = document.getElementById('reviewContent');
+    const ent = answers.entity || {};
+    let html = '';
+    // Entity
+    html += '<div class="review-section"><h4>🏢 Entity Information</h4>';
+    html += reviewRow('Entity', ent.name||'—');
+    html += reviewRow('Country', ent.country||'—');
+    html += reviewRow('Currency', ent.currency||'—');
+    html += reviewRow('Region', ent.region||'—');
+    html += reviewRow('Key User', answers.userName||'—');
+    html += reviewRow('Email', answers.userEmail||'—');
+    html += '</div>';
+    // Policy
+    html += '<div class="review-section"><h4>📄 Expense Policy</h4>';
+    html += reviewRow('Has local policy', answers.policy==='yes'?'Yes':'No');
+    if (answers.policy==='yes') html += reviewRow('Description', answers.policyDesc||'—');
+    html += '</div>';
+    // Per Diem
+    html += '<div class="review-section"><h4>🍽️ Per Diem</h4>';
+    html += reviewRow('Uses per diem', answers.perdiem==='yes'?'Yes':'No');
+    if (answers.perdiem==='yes' && answers.perdiemRates) {
+        answers.perdiemRates.forEach(r => { html += reviewRow(r[0], r[1]+' '+r[2]); });
+    }
+    html += '</div>';
+    // Mileage
+    html += '<div class="review-section"><h4>🚗 Mileage</h4>';
+    html += reviewRow('Uses mileage', answers.mileage==='yes'?'Yes':'No');
+    if (answers.mileage==='yes' && answers.mileageRates) {
+        answers.mileageRates.forEach(r => { html += reviewRow(r[0], r[1]+' '+r[2]); });
+    }
+    html += '</div>';
+    // Tax
+    html += '<div class="review-section"><h4>💰 Tax / VAT Rates</h4>';
+    if (answers.taxRates) { answers.taxRates.forEach(r => { html += reviewRow(r[0]+' ('+r[2]+')', r[1]+'%'); }); }
+    html += '</div>';
+    // Categories
+    html += '<div class="review-section"><h4>🏷️ Expense Categories</h4>';
+    html += reviewRow('Selected', (answers.categories||[]).join(', ')||'—');
+    if (answers.customCategories) html += reviewRow('Custom', answers.customCategories);
+    html += '</div>';
+    // Approval
+    html += '<div class="review-section"><h4>✅ Approval Workflow</h4>';
+    html += reviewRow('Has thresholds', answers.threshold==='yes'?'Yes':'No');
+    if (answers.approvalNotes) html += reviewRow('Notes', answers.approvalNotes);
+    if (answers.threshold==='yes' && answers.thresholds) {
+        answers.thresholds.forEach(r => { html += reviewRow(r[0], r[1]); });
+    }
+    html += '</div>';
+    rc.innerHTML = html;
+}
+function reviewRow(label, value) {
+    return '<div class="review-row"><span class="review-label">'+label+'</span><span class="review-value">'+value+'</span></div>';
+}
+
+// ===================== EXPORT TO EXCEL =====================
+function exportToExcel() {
+    saveCurrentStep();
+    const ent = answers.entity || {};
+    const wb = XLSX.utils.book_new();
+    // Sheet 1: Summary
+    const summaryData = [
+        ['Ceva Santé Animale – Coupa Expense Data Collection'],
+        [''],
+        ['Entity', ent.name||''], ['Country', ent.country||''], ['Currency', ent.currency||''],
+        ['Region', ent.region||''], ['Key User', answers.userName||''], ['Email', answers.userEmail||''],
+        [''], ['Has local expense policy', answers.policy||''],
+        ['Policy description', answers.policyDesc||''],
+    ];
+    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+    ws1['!cols'] = [{wch:30},{wch:50}];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+    // Sheet 2: Per Diem
+    if (answers.perdiem==='yes' && answers.perdiemRates) {
+        const pdData = [['Category','Rate','Currency']].concat(answers.perdiemRates);
+        const ws2 = XLSX.utils.aoa_to_sheet(pdData);
+        ws2['!cols'] = [{wch:25},{wch:15},{wch:10}];
+        XLSX.utils.book_append_sheet(wb, ws2, 'Per Diem');
+    }
+    // Sheet 3: Mileage
+    if (answers.mileage==='yes' && answers.mileageRates) {
+        const mlData = [['Vehicle Type','Rate per km','Currency']].concat(answers.mileageRates);
+        const ws3 = XLSX.utils.aoa_to_sheet(mlData);
+        ws3['!cols'] = [{wch:25},{wch:15},{wch:10}];
+        XLSX.utils.book_append_sheet(wb, ws3, 'Mileage');
+    }
+    // Sheet 4: Tax
+    if (answers.taxRates) {
+        const txData = [['Tax Type','Rate (%)','Description']].concat(answers.taxRates);
+        const ws4 = XLSX.utils.aoa_to_sheet(txData);
+        ws4['!cols'] = [{wch:20},{wch:10},{wch:40}];
+        XLSX.utils.book_append_sheet(wb, ws4, 'Tax VAT');
+    }
+    // Sheet 5: Categories
+    const catData = [['Category','Selected']];
+    (answers.categories||[]).forEach(c => catData.push([c,'Yes']));
+    if (answers.customCategories) catData.push(['Custom: '+answers.customCategories, 'Yes']);
+    const ws5 = XLSX.utils.aoa_to_sheet(catData);
+    ws5['!cols'] = [{wch:30},{wch:10}];
+    XLSX.utils.book_append_sheet(wb, ws5, 'Categories');
+    // Sheet 6: Approval
+    const apData = [['Approval Workflow'],[''],['Standard chain: Employee → Manager → Finance'],[''],['Additional notes:', answers.approvalNotes||'N/A'],[''],['Thresholds:']];
+    if (answers.threshold==='yes' && answers.thresholds) {
+        apData.push(['Amount Range','Approver']);
+        answers.thresholds.forEach(r => apData.push(r));
+    } else { apData.push(['Standard approval at all levels']); }
+    const ws6 = XLSX.utils.aoa_to_sheet(apData);
+    ws6['!cols'] = [{wch:30},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, ws6, 'Approval');
+
+    const fileName = 'DataCollection_'+(ent.name||'Entity').replace(/ /g,'_')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
+    XLSX.writeFile(wb, fileName);
+}
+
+// ===================== SUBMIT =====================
+function submitWizard() {
+    document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('wizardNav').style.display = 'none';
+    document.getElementById('progressBar').style.display = 'none';
+    document.getElementById('successScreen').style.display = 'block';
+}
+</script>
+</body>
+</html>
